@@ -1,0 +1,33 @@
+commit df6a61cabdc55b5a9fd2307361a63b247a8f4386
+Author: Fabio M. Di Nitto <fdinitto@redhat.com>
+Date:   Wed Jan 13 20:20:55 2010 +0100
+
+    resource-agents: drop support for drbd and smb resource agents
+    
+    Product Management Request
+    
+    Signed-off-by: Fabio M. Di Nitto <fdinitto@redhat.com>
+
+diff --git a/rgmanager/src/resources/Makefile b/rgmanager/src/resources/Makefile
+index 9f8265f..1ff9bd3 100644
+--- a/rgmanager/src/resources/Makefile
++++ b/rgmanager/src/resources/Makefile
+@@ -8,15 +8,15 @@ include ../../../make/defines.mk
+ include $(OBJDIR)/make/clean.mk
+ 
+ RESOURCES=service.sh ip.sh nfsclient.sh nfsexport.sh \
+-	script.sh netfs.sh clusterfs.sh smb.sh \
++	script.sh netfs.sh clusterfs.sh \
+ 	apache.sh openldap.sh samba.sh mysql.sh \
+ 	postgres-8.sh tomcat-5.sh lvm.sh \
+ 	vm.sh SAPInstance SAPDatabase named.sh \
+-	ASEHAagent.sh drbd.sh
++	ASEHAagent.sh
+ 
+ METADATA=apache.metadata openldap.metadata samba.metadata \
+ 	mysql.metadata postgres-8.metadata tomcat-5.metadata \
+-	named.metadata lvm.metadata drbd.metadata
++	named.metadata lvm.metadata
+ 
+ EVENT_TARGETS= \
+ 	default_event_script.sl \

@@ -1,0 +1,28 @@
+From 4540f05d7bf48cef31726d9446549ffec07a7511 Mon Sep 17 00:00:00 2001
+From: Lon Hohberger <lhh@redhat.com>
+Date: Fri, 9 Jul 2010 14:36:44 -0400
+Subject: [PATCH] resource-agents: Add NFSv4 agent to installation
+
+Resolves: rhbz#595547
+
+Signed-off-by: Lon Hohberger <lhh@redhat.com>
+---
+ rgmanager/src/resources/Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/rgmanager/src/resources/Makefile b/rgmanager/src/resources/Makefile
+index 1ff9bd3..e1600cd 100644
+--- a/rgmanager/src/resources/Makefile
++++ b/rgmanager/src/resources/Makefile
+@@ -12,7 +12,7 @@ RESOURCES=service.sh ip.sh nfsclient.sh nfsexport.sh \
+ 	apache.sh openldap.sh samba.sh mysql.sh \
+ 	postgres-8.sh tomcat-5.sh lvm.sh \
+ 	vm.sh SAPInstance SAPDatabase named.sh \
+-	ASEHAagent.sh
++	ASEHAagent.sh nfsserver.sh
+ 
+ METADATA=apache.metadata openldap.metadata samba.metadata \
+ 	mysql.metadata postgres-8.metadata tomcat-5.metadata \
+-- 
+1.6.2.5
+

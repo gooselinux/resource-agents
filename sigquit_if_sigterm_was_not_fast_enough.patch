@@ -1,0 +1,167 @@
+From c7486148c761e32e4f2767e8984d4f16ea61cc2f Mon Sep 17 00:00:00 2001
+From: Marek 'marx' Grac <mgrac@redhat.com>
+Date: Tue, 13 Jul 2010 15:20:07 +0200
+Subject: [PATCH] resource-agents: Use SIGQUIT if SIGTERM was not fast enough
+
+There are applications (like psql) that are not closed with SIGTERM
+if there are open connections. New function stop_generic_sigkill()
+was introduced to handle such case and disable service correctly.
+
+Based on patch proposed in bz by Shane Bradley
+
+Resolves: rhbz#612165
+---
+ rgmanager/src/resources/postgres-8.sh            |    3 +-
+ rgmanager/src/resources/utils/config-utils.sh.in |    2 +-
+ rgmanager/src/resources/utils/messages.sh        |    8 ++++
+ rgmanager/src/resources/utils/ra-skelet.sh       |   40 +++++++++++++++++++---
+ 4 files changed, 46 insertions(+), 7 deletions(-)
+
+diff --git a/rgmanager/src/resources/postgres-8.sh b/rgmanager/src/resources/postgres-8.sh
+index 563c700..689c6e2 100644
+--- a/rgmanager/src/resources/postgres-8.sh
++++ b/rgmanager/src/resources/postgres-8.sh
+@@ -13,6 +13,7 @@ declare PSQL_POSTMASTER="/usr/bin/postmaster"
+ declare PSQL_pid_file="`generate_name_for_pid_file`"
+ declare PSQL_conf_dir="`generate_name_for_conf_dir`"
+ declare PSQL_gen_config_file="$PSQL_conf_dir/postgresql.conf"
++declare PSQL_kill_timeout="5"
+ 
+ verify_all()
+ {
+@@ -145,7 +146,7 @@ stop()
+ {
+ 	clog_service_stop $CLOG_INIT
+ 
+-	stop_generic "$PSQL_pid_file" "$OCF_RESKEY_shutdown_wait"
++	stop_generic_sigkill "$PSQL_pid_file" "$OCF_RESKEY_shutdown_wait" "$PSQL_kill_timeout"
+ 	if [ $? -ne 0 ]; then
+ 		clog_service_stop $CLOG_FAILED
+ 		return $OCF_ERR_GENERIC
+diff --git a/rgmanager/src/resources/utils/config-utils.sh.in b/rgmanager/src/resources/utils/config-utils.sh.in
+index 4ee083f..1d343ac 100644
+--- a/rgmanager/src/resources/utils/config-utils.sh.in
++++ b/rgmanager/src/resources/utils/config-utils.sh.in
+@@ -3,7 +3,7 @@
+ declare RA_COMMON_pid_dir=/var/run/cluster
+ declare RA_COMMON_conf_dir=@CONFDIR@
+ 
+-declare -i FAIL=-1
++declare -i FAIL=255
+ declare -a ip_keys
+ 
+ generate_configTemplate()
+diff --git a/rgmanager/src/resources/utils/messages.sh b/rgmanager/src/resources/utils/messages.sh
+index 6148fa6..9381f1f 100644
+--- a/rgmanager/src/resources/utils/messages.sh
++++ b/rgmanager/src/resources/utils/messages.sh
+@@ -2,12 +2,14 @@
+ 
+ declare CLOG_INIT=100
+ declare CLOG_SUCCEED=200
++declare CLOG_SUCCEED_KILL=201
+ 
+ declare CLOG_FAILED=400
+ declare CLOG_FAILED_TIMEOUT=401
+ declare CLOG_FAILED_NOT_FOUND=403
+ declare CLOG_FAILED_INVALID=404
+ declare CLOG_FAILED_NOT_READABLE=405
++declare CLOG_FAILED_KILL=406
+ 
+ ##
+ ## Usage:
+@@ -45,12 +47,18 @@ clog_service_stop()
+ 		$CLOG_SUCCEED)
+ 			ocf_log info "Stopping Service $OCF_RESOURCE_INSTANCE > Succeed"
+ 			;;
++		$CLOG_SUCCEED_KILL)
++			ocf_log info "Killing Service $OCF_RESOURCE_INSTANCE > Succeed"
++			;;
+ 		$CLOG_FAILED)
+ 			ocf_log error "Stopping Service $OCF_RESOURCE_INSTANCE > Failed"
+ 			;;
+ 		$CLOG_FAILED_NOT_STOPPED)
+ 			ocf_log error "Stopping Service $OCF_RESOURCE_INSTANCE > Failed - Application Is Still Running"
+ 			;;
++		$CLOG_FAILED_KILL)
++			ocf_log error "Killing Service $OCF_RESOURCE_INSTANCE > Failed"
++			;;
+ 	esac
+ 	return 0
+ }
+diff --git a/rgmanager/src/resources/utils/ra-skelet.sh b/rgmanager/src/resources/utils/ra-skelet.sh
+index 5baaaa9..5de7bb2 100644
+--- a/rgmanager/src/resources/utils/ra-skelet.sh
++++ b/rgmanager/src/resources/utils/ra-skelet.sh
+@@ -30,7 +30,7 @@ status_check_pid()
+ stop_generic()
+ {
+ 	declare pid_file="$1"
+-	declare kill_timeout="$2"
++	declare stop_timeout="$2"
+ 	declare pid;
+ 	declare count=0;
+ 
+@@ -42,8 +42,8 @@ stop_generic()
+ 		return 0
+ 	fi
+ 
+-	if [ -z "$kill_timeout" ]; then
+-		kill_timeout=20
++	if [ -z "$stop_timeout" ]; then
++		stop_timeout=20
+ 	fi
+ 
+ 	read pid < "$pid_file"
+@@ -64,16 +64,46 @@ stop_generic()
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 
+-	until [ `ps --pid "$pid" &> /dev/null; echo $?` = '1' ] || [ $count -gt $kill_timeout ]
++	until [ `ps --pid "$pid" &> /dev/null; echo $?` = '1' ] || [ $count -gt $stop_timeout ]
+ 	do
+ 		sleep 1
+ 		let count=$count+1
+ 	done
+ 
+-	if [ $count -gt $kill_timeout ]; then
++	if [ $count -gt $stop_timeout ]; then
+ 		clog_service_stop $CLOG_FAILED_NOT_STOPPED
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 	
+ 	return 0;
+ }
++
++stop_generic_sigkill() {
++	# Use stop_generic (kill -TERM) and if application did not stop
++	# correctly then use kill -QUIT and check if it was killed
++	declare pid_file="$1"
++	declare stop_timeout="$2"
++	declare kill_timeout="$3"
++	declare pid
++	
++	stop_generic "$pid_file" "$stop_timeout"
++	if [ $? -eq 0 ]; then
++		return 0;
++	fi
++	
++	read pid < "$pid_file"
++	kill -QUIT "$pid"
++	if [ $? -ne 0 ]; then
++		return $OCF_GENERIC_ERROR
++	fi
++	
++	sleep "$kill_timeout"
++	ps --pid "$psql_pid" &> /dev/null
++	if [ $? -eq 0 ]; then
++		clog_service_stop $CLOG_FAILED_KILL
++		return $OCF_ERR_GENERIC
++	fi
++	
++	clog_service_stop $CLOG_SUCCEED_KILL
++	return 0
++}
+-- 
+1.6.0.6
+

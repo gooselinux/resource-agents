@@ -1,0 +1,25 @@
+commit 9494b5e95ccd681c3f60601b6e306b670c73edbd
+Author: Jonathan Brassow <jbrassow@redhat.com>
+Date:   Tue May 18 13:18:53 2010 -0500
+
+    halvm: Fix bug 593108: lvm agent incorrectly reports vg is in volume_list
+    
+    If the name of the VG controlled by rgmanager is a substring of the name
+    of the node, the HA-LVM script will complain of an improper setup.
+    
+    The fix is to also look for the associated quotes that are necessary when
+    specifying strings in lvm.conf.  Thanks to John Ruemker for the patch.
+
+diff --git a/rgmanager/src/resources/lvm.sh b/rgmanager/src/resources/lvm.sh
+index 4b7155c..7f174ca 100644
+--- a/rgmanager/src/resources/lvm.sh
++++ b/rgmanager/src/resources/lvm.sh
+@@ -47,7 +47,7 @@ function ha_lvm_proper_setup_check
+ 	# lvm.conf:activation/volume_list; otherwise, machines
+ 	# will be able to activate the VG regardless of the tags
+ 	##
+-	if lvm dumpconfig activation/volume_list | grep $OCF_RESKEY_vg_name; then
++	if lvm dumpconfig activation/volume_list | grep "\"$OCF_RESKEY_vg_name\""; then
+ 		ocf_log err "HA LVM:  Improper setup detected"
+ 		ocf_log err "- $OCF_RESKEY_vg_name found in \"volume_list\" in lvm.conf"
+ 		return $OCF_ERR_GENERIC

@@ -1,0 +1,36 @@
+From 9f315303a6b88bcc9d3d6b04f98a640c7bd3049e Mon Sep 17 00:00:00 2001
+From: Lon Hohberger <lhh@redhat.com>
+Date: Wed, 14 Jul 2010 10:20:43 -0400
+Subject: [PATCH] resource-agents: Allow other values for "yes"
+
+Resolves: rhbz#614421
+
+Signed-off-by: Lon Hohberger <lhh@redhat.com>
+---
+ rgmanager/src/resources/utils/fs-lib.sh |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/rgmanager/src/resources/utils/fs-lib.sh b/rgmanager/src/resources/utils/fs-lib.sh
+index 32667ed..4f242f7 100644
+--- a/rgmanager/src/resources/utils/fs-lib.sh
++++ b/rgmanager/src/resources/utils/fs-lib.sh
+@@ -717,12 +717,16 @@ stop: Could not match $OCF_RESKEY_device with a real device"
+ 	#
+ 	case ${OCF_RESKEY_force_unmount} in
+         $YES_STR)	force_umount=$YES ;;
++	on)		force_umount=$YES ;;
++	true)		force_umount=$YES ;;
+ 	1)		force_umount=$YES ;;
+         *)		force_umount="" ;;
+ 	esac
+ 
+ 	case ${OCF_RESKEY_self_fence} in
+         $YES_STR)	self_fence=$YES ;;
++	on)		self_fence=$YES ;;
++	true)		self_fence=$YES ;;
+ 	1)		self_fence=$YES ;;
+         *)		self_fence="" ;;
+ 	esac
+-- 
+1.6.2.5
+

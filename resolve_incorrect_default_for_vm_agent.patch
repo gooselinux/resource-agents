@@ -1,0 +1,26 @@
+commit 16cd1902fbbcae8c37c212099b9384ec30b2f376
+Author: Lon Hohberger <lhh@redhat.com>
+Date:   Thu Jun 3 12:55:17 2010 -0400
+
+    resource-agents: Resolve incorrect default
+    
+    The incorrect default was causing VMs to restart
+    every 5 minutes.
+    
+    Resolves: rhbz#599643
+    
+    Signed-off-by: Lon Hohberger <lhh@redhat.com>
+
+diff --git a/rgmanager/src/resources/vm.sh b/rgmanager/src/resources/vm.sh
+index 3501071..53ada42 100644
+--- a/rgmanager/src/resources/vm.sh
++++ b/rgmanager/src/resources/vm.sh
+@@ -224,7 +224,7 @@ meta_data()
+             <shortdesc lang="en">
+ 	    	Additional status check program
+             </shortdesc>
+-            <content type="string" default="0"/>
++            <content type="string" default=""/>
+         </parameter>
+ 
+ 	<parameter name="hypervisor">

@@ -1,0 +1,28 @@
+From c5832316e3ae6baa1f50f5871deaa1dde36a2129 Mon Sep 17 00:00:00 2001
+From: Lon Hohberger <lhh@redhat.com>
+Date: Tue, 20 Jul 2010 13:39:05 -0400
+Subject: [PATCH] resource-agents: Drop tomcat-5 from build
+
+Resolves: rhbz#593721
+
+Signed-off-by: Lon Hohberger <lhh@redhat.com>
+---
+ rgmanager/src/resources/Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/rgmanager/src/resources/Makefile b/rgmanager/src/resources/Makefile
+index 8feab83..687dd0b 100644
+--- a/rgmanager/src/resources/Makefile
++++ b/rgmanager/src/resources/Makefile
+@@ -10,7 +10,7 @@ include $(OBJDIR)/make/clean.mk
+ RESOURCES=service.sh ip.sh nfsclient.sh nfsexport.sh \
+ 	script.sh netfs.sh clusterfs.sh \
+ 	apache.sh openldap.sh samba.sh mysql.sh \
+-	postgres-8.sh tomcat-5.sh tomcat-6.sh lvm.sh \
++	postgres-8.sh tomcat-6.sh lvm.sh \
+ 	vm.sh SAPInstance SAPDatabase named.sh \
+ 	ASEHAagent.sh nfsserver.sh
+ 
+-- 
+1.6.2.5
+

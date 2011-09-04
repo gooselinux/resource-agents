@@ -1,0 +1,68 @@
+From a440d258658668f932034d16145e2e3bbefaa27d Mon Sep 17 00:00:00 2001
+From: Masahiro Matsuya <mmatsuya@redhat.com>
+Date: Fri, 9 Jul 2010 14:40:51 -0400
+Subject: [PATCH] resource-agents: Fix migration mapping behavior w/ virsh
+
+Consider a two node cluster. The hostname of the nodes
+are 'sk010001' and 'sk010002'.  Each nodes has two bonded
+network interfaces for public and private communications.
+The hostname matches the hostname of the IP address on
+public network.
+
+Node1: sk010001
+ bond0 (for public network) : 172.22.51.1    sk010001
+ bond2 (for private network): 172.22.48.131  sk010001-hb
+
+Node2: sk010002
+ bond0 (for public network) : 172.22.51.2    sk010002
+ bond2 (for private network): 172.22.48.132  sk010002-hb
+
+In cluster.conf, a migration mapping is used to specify
+that the private interfaces should be used for migration traffic.
+Unfortunately, when doing a live migration, while the traffic
+should use the -hb interfaces, bond0 is used.
+
+This is because the vm.sh agent uses the following command
+for live migration from sk010001 to sk010002:
+
+  virsh migrate --live su21k003 \
+	qemu+ssh://sk010002-hb/system
+
+This is not enough to ensure the guest goes over the private
+interface.  The --migrateuri option of 'virsh migrate' is needed
+for it.  The following command should be executed instead:
+
+  virsh migrate --live su21k003 \
+	qemu+ssh://sk010002-hb/system tcp:sk010002-hb
+
+Resolves: rhbz#596918
+
+Signed-off-by: Lon Hohberger <lhh@redhat.com>
+---
+ rgmanager/src/resources/vm.sh |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/rgmanager/src/resources/vm.sh b/rgmanager/src/resources/vm.sh
+index b3cbc2e..e23d5ba 100644
+--- a/rgmanager/src/resources/vm.sh
++++ b/rgmanager/src/resources/vm.sh
+@@ -810,6 +810,7 @@ validate_all()
+ 		# Virsh makes it easier to do this.  Really.
+ 		if [ "$OCF_RESKEY_hypervisor" = "qemu" ]; then
+ 			export OCF_RESKEY_migration_uri="qemu+ssh://%s/system"
++			export migrateuriopt="tcp:%s"
+ 		fi
+ 
+ 		# I just need to believe in it more.
+@@ -845,7 +846,7 @@ virsh_migrate()
+ 		err=$($cmd 2>&1 | head -1; exit ${PIPESTATUS[0]})
+ 		rv=$?
+ 	elif [ "$OCF_RESKEY_hypervisor" = "qemu" ]; then
+-		cmd="virsh migrate $migrate_opt $OCF_RESKEY_name $(printf $OCF_RESKEY_migration_uri $target)"
++		cmd="virsh migrate $migrate_opt $OCF_RESKEY_name $(printf $OCF_RESKEY_migration_uri $target) $(printf $migrateuriopt $target)"
+ 		ocf_log debug "$cmd"
+ 		
+ 		err=$($cmd 2>&1 | head -1; exit ${PIPESTATUS[0]})
+-- 
+1.6.2.5
+

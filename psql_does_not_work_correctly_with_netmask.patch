@@ -1,0 +1,27 @@
+From 6314b03d2657cae368787b9269af2fdcda08f871 Mon Sep 17 00:00:00 2001
+From: Marek 'marx' Grac <mgrac@redhat.com>
+Date: Wed, 14 Jul 2010 15:40:01 +0200
+Subject: [PATCH] resource-agents: RA for psql does not work correctly with netmask
+
+Patch proposed by Hirotaka Igarashi <hiro@csrl.jp>
+
+Resolves: rhbz#614457
+---
+ rgmanager/src/resources/postgres-8.sh |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/rgmanager/src/resources/postgres-8.sh b/rgmanager/src/resources/postgres-8.sh
+index 689c6e2..b0b59c7 100644
+--- a/rgmanager/src/resources/postgres-8.sh
++++ b/rgmanager/src/resources/postgres-8.sh
+@@ -71,6 +71,7 @@ generate_config_file()
+ 
+ 	declare x=1
+ 	for i in $ip_addressess; do
++		i=`echo $i | sed -e 's/\/.*$//'`
+ 		if [ $x -eq 1 ]; then
+ 			x=0
+ 			ip_comma=$i
+-- 
+1.6.0.6
+

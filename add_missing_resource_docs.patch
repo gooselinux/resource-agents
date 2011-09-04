@@ -1,0 +1,418 @@
+From 49088729b74df971af6860c4417c9c2abfef348b Mon Sep 17 00:00:00 2001
+From: Lon Hohberger <lhh@redhat.com>
+Date: Tue, 15 Jun 2010 15:44:23 -0400
+Subject: resource-agents: Add missing resource docs
+
+Resolves: rhbz#606470
+
+Signed-off-by: Lon Hohberger <lhh@redhat.com>
+---
+ rgmanager/src/resources/ra2rng.xsl         |   17 +++----
+ rgmanager/src/resources/resources.rng.tail |   10 ++--
+ rgmanager/src/resources/service.sh         |   52 ++++++++-------------
+ rgmanager/src/resources/vm.sh              |   70 +++++++++++++--------------
+ 4 files changed, 66 insertions(+), 83 deletions(-)
+
+diff --git a/rgmanager/src/resources/ra2rng.xsl b/rgmanager/src/resources/ra2rng.xsl
+index af65ee9..425faa9 100644
+--- a/rgmanager/src/resources/ra2rng.xsl
++++ b/rgmanager/src/resources/ra2rng.xsl
+@@ -8,36 +8,35 @@
+ 
+ <xsl:template match="/resource-agent">
+   &lt;define name="<xsl:call-template name="capitalize"><xsl:with-param name="value" select="@name"/></xsl:call-template>"&gt;
+-    &lt;element name="<xsl:value-of select="@name"/>"&gt;
+-      &lt;!-- <xsl:value-of select="normalize-space(shortdesc)"/> --&gt;
++    &lt;element name="<xsl:value-of select="@name"/>" rha:description="<xsl:value-of select="normalize-space(shortdesc)"/>"&gt;
+       &lt;choice&gt;
+       &lt;group&gt;
+         &lt;!-- rgmanager specific stuff --&gt;
+-        &lt;attribute name="ref"/&gt;
++        &lt;attribute name="ref" rha:description="Reference to existing <xsl:value-of select="@name"/> resource in the resources section."/&gt;
+       &lt;/group&gt;
+       &lt;group&gt;<xsl:for-each select="parameters/parameter">
+ 		<xsl:choose>
+ 			<xsl:when test="@required = 1 or @primary = 1">
+-        &lt;attribute name="<xsl:value-of select="@name"/>"/&gt;</xsl:when>
++        &lt;attribute name="<xsl:value-of select="@name"/>" rha:description="<xsl:value-of select="normalize-space(shortdesc)"/>"/&gt;</xsl:when>
+ 			<xsl:otherwise>
+         &lt;optional&gt;
+-          &lt;attribute name="<xsl:value-of select="@name"/>"/&gt;
++          &lt;attribute name="<xsl:value-of select="@name"/>" rha:description="<xsl:value-of select="normalize-space(shortdesc)"/>"/&gt;
+         &lt;/optional&gt;</xsl:otherwise>
+ 		</xsl:choose>
+ 	</xsl:for-each>
+       &lt;/group&gt;
+       &lt;/choice&gt;
+       &lt;optional&gt;
+-        &lt;attribute name="__independent_subtree"/&gt;
++        &lt;attribute name="__independent_subtree" rha:description="Treat this and all children as an independent subtree."/&gt;
+       &lt;/optional&gt;
+       &lt;optional&gt;
+-        &lt;attribute name="__enforce_timeouts"/&gt;
++        &lt;attribute name="__enforce_timeouts" rha:description="Consider a timeout for operations as fatal."/&gt;
+       &lt;/optional&gt;
+       &lt;optional&gt;
+-        &lt;attribute name="__max_failures"/&gt;
++        &lt;attribute name="__max_failures" rha:description="Maximum number of failures before returning a failure to a status check."/&gt;
+       &lt;/optional&gt;
+       &lt;optional&gt;
+-        &lt;attribute name="__failure_expire_time"/&gt;
++        &lt;attribute name="__failure_expire_time" rha:description="Amount of time before a failure is forgotten."/&gt;
+       &lt;/optional&gt;
+       &lt;optional&gt;
+         &lt;ref name="CHILDREN"/&gt;
+diff --git a/rgmanager/src/resources/resources.rng.tail b/rgmanager/src/resources/resources.rng.tail
+index c273680..765c2d9 100644
+--- a/rgmanager/src/resources/resources.rng.tail
++++ b/rgmanager/src/resources/resources.rng.tail
+@@ -14,16 +14,16 @@
+ 
+   <define name="RESOURCEACTION">
+    <zeroOrMore>
+-    <element name="action">
+-     <attribute name="name"/>
++    <element name="action" rha:description="Overrides resource action timings for a resource instance.">
++     <attribute name="name" rha:description="Name of resource action (start, stop, status, etc.)."/>
+      <optional>
+-      <attribute name="depth"/>
++      <attribute name="depth" rha:description="Status check depth (resource agent dependent; * = all depths)."/>
+      </optional>
+      <optional>
+-      <attribute name="interval"/>
++      <attribute name="interval" rha:description="Status check interval."/>
+      </optional>
+      <optional>
+-      <attribute name="timeout"/>
++      <attribute name="timeout" rha:description="Action timeout.  Meaningless unless __enforce_timeouts is set for this resource."/>
+      </optional>
+     </element>
+    </zeroOrMore>
+diff --git a/rgmanager/src/resources/service.sh b/rgmanager/src/resources/service.sh
+index 5adcc37..e37f518 100644
+--- a/rgmanager/src/resources/service.sh
++++ b/rgmanager/src/resources/service.sh
+@@ -23,7 +23,7 @@ meta_data()
+         group or cluster service.
+     </longdesc>
+     <shortdesc lang="en">
+-        Defines a services.
++        Defines a service (resource group).
+     </shortdesc>
+ 
+     <parameters>
+@@ -32,18 +32,18 @@ meta_data()
+                 This is the name of the resource group.
+             </longdesc>
+             <shortdesc lang="en">
+-                Name
++                Name.
+             </shortdesc>
+             <content type="string"/>
+         </parameter>
+     
+         <parameter name="domain" reconfig="1">
+             <longdesc lang="en">
+-                Fail over domains define lists of cluster members
++                Failover domains define lists of cluster members
+                 to try in the event that a resource group fails.
+             </longdesc>
+             <shortdesc lang="en">
+-                Fail over Domain
++                Failover domain.
+             </shortdesc>
+             <content type="string"/>
+         </parameter>
+@@ -61,21 +61,6 @@ meta_data()
+             <content type="boolean" default="1"/>
+         </parameter>
+ 
+-        <parameter name="hardrecovery" reconfig="1">
+-            <longdesc lang="en">
+-	    	If set to yes, the last owner will reboot if this resource
+-		group fails to stop cleanly, thus allowing the resource
+-		group to fail over to another node.  Use with caution; a
+-		badly-behaved resource could cause the entire cluster to
+-		reboot.  This should never be enabled if the automatic
+-		start feature is used.
+-            </longdesc>
+-            <shortdesc lang="en">
+-	    	Reboot if stop phase fails
+-            </shortdesc>
+-            <content type="boolean" default="0"/>
+-        </parameter>
+-
+         <parameter name="exclusive" reconfig="1">
+             <longdesc lang="en">
+ 	    	If set, this resource group will only relocate to
+@@ -88,7 +73,7 @@ meta_data()
+ 		operations.
+             </longdesc>
+             <shortdesc lang="en">
+-	        Exclusive resource group
++	        Exclusive service.
+             </shortdesc>
+             <content type="boolean" default="0"/>
+         </parameter>
+@@ -104,7 +89,7 @@ meta_data()
+ 		the -H parameter.
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
+-	        Enable NFS lock workarounds
++	        Enable NFS lock workarounds.
+ 	    </shortdesc>
+ 	    <content type="boolean" default="0"/>
+ 	</parameter>
+@@ -124,7 +109,7 @@ meta_data()
+ 		is called.
+             </longdesc>
+             <shortdesc lang="en">
+-	    	Enable exportfs list caching
++	    	Enable exportfs list caching (performance).
+             </shortdesc>
+ 	    <content type="integer" default="0"/>
+ 	</parameter>
+@@ -141,33 +126,33 @@ meta_data()
+ 		recovered without a restart will be.
+             </longdesc>
+             <shortdesc lang="en">
+-	    	Failure recovery policy
++	    	Failure recovery policy (restart, relocate, or disable).
+             </shortdesc>
+             <content type="string" default="restart"/>
+         </parameter>
+ 
+         <parameter name="depend">
+             <longdesc lang="en">
+-		Top-level service this depends on, in "service:name" format.
+-            </longdesc>
+-            <shortdesc lang="en">
+ 		Service dependency; will not start without the specified
+ 		service running.
++            </longdesc>
++            <shortdesc lang="en">
++		Top-level service this depends on, in service:name format.
+             </shortdesc>
+             <content type="string"/>
+         </parameter>
+ 
+         <parameter name="depend_mode">
+             <longdesc lang="en">
+-	    	Dependency mode
+-            </longdesc>
+-            <shortdesc lang="en">
+ 		Service dependency mode.
+ 		hard - This service is stopped/started if its dependency
+ 		       is stopped/started
+ 		soft - This service only depends on the other service for
+ 		       initial startip.  If the other service stops, this
+ 		       service is not stopped.
++            </longdesc>
++            <shortdesc lang="en">
++	    	Service dependency mode (soft or hard).
+             </shortdesc>
+             <content type="string" default="hard"/>
+         </parameter>
+@@ -184,15 +169,16 @@ meta_data()
+ 
+         <parameter name="restart_expire_time">
+             <longdesc lang="en">
+-	    	Restart expiration time
+-            </longdesc>
+-            <shortdesc lang="en">
+ 	    	Restart expiration time.  A restart is forgotten
+ 		after this time.  When combined with the max_restarts
+ 		option, this lets administrators specify a threshold
+ 		for when to fail over services.  If max_restarts
+ 		is exceeded in this given expiration time, the service
+ 		is relocated instead of restarted again.
++            </longdesc>
++            <shortdesc lang="en">
++	    	Restart expiration time; amount of time before a restart
++		is forgotten.
+             </shortdesc>
+             <content type="string" default="0"/>
+         </parameter>
+@@ -207,7 +193,7 @@ meta_data()
+ 		on.
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
+-		Service priority
++		Service priority.
+ 	    </shortdesc>
+ 	    <content type="integer" default="0"/>
+ 	</parameter>
+diff --git a/rgmanager/src/resources/vm.sh b/rgmanager/src/resources/vm.sh
+index 53ada42..08fd097 100644
+--- a/rgmanager/src/resources/vm.sh
++++ b/rgmanager/src/resources/vm.sh
+@@ -40,12 +40,12 @@ meta_data()
+     
+         <parameter name="domain" reconfig="1">
+             <longdesc lang="en">
+-                Fail over domains define lists of cluster members
++                Failover domains define lists of cluster members
+                 to try in the event that the host of the virtual machine
+ 		fails.
+             </longdesc>
+             <shortdesc lang="en">
+-                Cluster Fail Over Domain
++                Cluster failover Domain
+             </shortdesc>
+             <content type="string"/>
+         </parameter>
+@@ -63,21 +63,6 @@ meta_data()
+             <content type="boolean" default="1"/>
+         </parameter>
+ 
+-        <parameter name="hardrecovery" reconfig="1">
+-            <longdesc lang="en">
+-	    	If set to yes, the last owner will reboot if this resource
+-		group fails to stop cleanly, thus allowing the resource
+-		group to fail over to another node.  Use with caution; a
+-		badly-behaved resource could cause the entire cluster to
+-		reboot.  This should never be enabled if the automatic
+-		start feature is used.
+-            </longdesc>
+-            <shortdesc lang="en">
+-	    	Reboot if stop phase fails
+-            </shortdesc>
+-            <content type="boolean" default="0"/>
+-        </parameter>
+-
+         <parameter name="exclusive" reconfig="1">
+             <longdesc lang="en">
+ 	    	If set, this resource group will only relocate to
+@@ -121,7 +106,7 @@ meta_data()
+ 
+ 	<parameter name="use_virsh">
+ 	    <longdesc lang="en">
+-	    	Use virsh instead of XM
++	    	Force use of virsh instead of xm on Xen machines.
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
+ 	    	If set to 1, vm.sh will use the virsh command to manage
+@@ -133,30 +118,31 @@ meta_data()
+ 
+ 	<parameter name="xmlfile">
+ 	    <longdesc lang="en">
+-	    	Use xmlfile to create the vm (libvirt)
++	    	Full path to libvirt XML file describing the domain.
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
++	    	Full path to libvirt XML file describing the domain.
+ 	    </shortdesc>
+             <content type="string"/>
+ 	</parameter>
+ 
+ 	<parameter name="migrate">
+ 	    <longdesc lang="en">
+-	    	Migration type live or pause, default = live.
++	    	Migration type (live or pause, default = live).
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
+-	    	Migration type live or pause, default = live.
++	    	Migration type (live or pause, default = live).
+ 	    </shortdesc>
+             <content type="string" default="live"/>
+         </parameter>
+ 
+ 	<parameter name="path">
+ 	    <longdesc lang="en">
+-		Path specification 'xm create' will search for the specified
+- 		VM configuration file
++		Path specification vm.sh will search for the specified
++ 		VM configuration file.  /path1:/path2:...
+ 	    </longdesc>
+ 	    <shortdesc lang="en">
+-		Path to virtual machine configuration files
++		Path to virtual machine configuration files.
+  	    </shortdesc>
+ 	    <content type="string"/>
+  	</parameter>
+@@ -175,26 +161,26 @@ meta_data()
+ 
+         <parameter name="depend">
+             <longdesc lang="en">
+-		Top-level service this depends on, in "service:name" format.
+-            </longdesc>
+-            <shortdesc lang="en">
+ 		Service dependency; will not start without the specified
+ 		service running.
++            </longdesc>
++            <shortdesc lang="en">
++		Top-level service this depends on, in service:name format.
+             </shortdesc>
+             <content type="string"/>
+         </parameter>
+ 
+         <parameter name="depend_mode">
+             <longdesc lang="en">
+-	    	Dependency mode
+-            </longdesc>
+-            <shortdesc lang="en">
+ 		Service dependency mode.
+ 		hard - This service is stopped/started if its dependency
+ 		       is stopped/started
+ 		soft - This service only depends on the other service for
+ 		       initial startip.  If the other service stops, this
+ 		       service is not stopped.
++            </longdesc>
++            <shortdesc lang="en">
++	    	Service dependency mode (soft or hard).
+             </shortdesc>
+             <content type="string" default="hard"/>
+         </parameter>
+@@ -210,6 +196,18 @@ meta_data()
+         </parameter>
+ 
+         <parameter name="restart_expire_time" reconfig="1">
++            <longdesc lang="en">
++	    	Restart expiration time.  A restart is forgotten
++		after this time.  When combined with the max_restarts
++		option, this lets administrators specify a threshold
++		for when to fail over services.  If max_restarts
++		is exceeded in this given expiration time, the service
++		is relocated instead of restarted again.
++            </longdesc>
++            <shortdesc lang="en">
++	    	Restart expiration time; amount of time before a restart
++		is forgotten.
++            </shortdesc>
+             <content type="string" default="0"/>
+         </parameter>
+ 
+@@ -239,24 +237,24 @@ meta_data()
+ 	</parameter>
+ 
+ 	<parameter name="hypervisor_uri">
+-            <shortdesc lang="en">
+-		Hypervisor URI
+-            </shortdesc >
+             <longdesc lang="en">
+ 		Hypervisor URI.  Generally, this is keyed off of the
+ 		hypervisor and does not need to be set.
+             </longdesc>
++            <shortdesc lang="en">
++		Hypervisor URI (normally automatic).
++            </shortdesc >
+ 	    <content type="string" default="auto" />
+ 	</parameter>
+ 
+ 	<parameter name="migration_uri">
+-            <shortdesc lang="en">
+-		Migration URI
+-            </shortdesc >
+             <longdesc lang="en">
+ 		Migration URI.  Generally, this is keyed off of the
+ 		hypervisor and does not need to be set.
+             </longdesc>
++            <shortdesc lang="en">
++		Migration URI (normally automatic).
++            </shortdesc >
+ 	    <content type="string" default="auto" />
+ 	</parameter>
+ 
+-- 
+1.6.2.5
+
