@@ -22,7 +22,7 @@
 Name: resource-agents
 Summary: Open Source HA Resource Agents for Red Hat Cluster
 Version: 3.0.12
-Release: 15%{?alphatag:.%{alphatag}}%{?dist}
+Release: 15%{?alphatag:.%{alphatag}}%{?dist}.1
 License: GPLv2+ and LGPLv2+
 Group: System Environment/Base
 URL: http://sources.redhat.com/cluster/wiki/
@@ -47,6 +47,7 @@ Patch13: tomcat-6_change_build_system.patch
 Patch14: fs-lib_allow_other_values_for_yes.patch
 Patch15: drop_tomcat_5_from_build.patch
 Patch16: psql_does_not_work_correctly_with_netmask.patch
+Patch17: fix_utility_to_obtain_data_from_ccs_tool.patch
 
 ## Runtime deps
 # system tools shared by several agents
@@ -135,6 +136,7 @@ and works with the heartbeat code (http://www.linux-ha.org/).
 %patch14 -p1 -b .fs-lib_allow_other_values_for_yes
 %patch15 -p1 -b .drop_tomcat_5_from_build
 %patch16 -p1 -b .psql_does_not_work_correctly_with_netmask
+%patch17 -p1 -b .fix_utility_to_obtain_data_from_ccs_tool
 
 # prepare rgmanager RAs
 %{_configure} \
@@ -242,6 +244,11 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
+* Tue Oct 05 2010 Lon Hohberger <lhh@redhat.com> - Version: 3.0.12-15.el6_0.1
+- resource-agents: fix utility to obtain data from ccs_tool
+  (fix_utility_to_obtain_data_from_ccs_tool.patch)
+  Resolves: rhbz#640190
+
 * Wed Jul 21 2010 Marek Grac <mgrac@redhat.com> - 3.0.12-15
 - postgresql RA does not work correctly with netmask
   (psql_does_not_work_correctly_with_netmask.patch)

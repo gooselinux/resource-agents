@@ -1,0 +1,30 @@
+From f8033d5c66dad6159a93fa0eb0bfe9fbee1d3065 Mon Sep 17 00:00:00 2001
+From: Marek 'marx' Grac <mgrac@redhat.com>
+Date: Fri, 1 Oct 2010 21:39:49 +0200
+Subject: [PATCH] resource-agents: fix utility to obtain data from ccs_tool
+
+Resolves: rhbz#640190
+---
+ rgmanager/src/resources/utils/config-utils.sh.in |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
+
+diff --git a/rgmanager/src/resources/utils/config-utils.sh.in b/rgmanager/src/resources/utils/config-utils.sh.in
+index 05b04fa..e3a44d0 100644
+--- a/rgmanager/src/resources/utils/config-utils.sh.in
++++ b/rgmanager/src/resources/utils/config-utils.sh.in
+@@ -60,6 +60,12 @@ ccs_get()
+ 
+ 	outp=$(ccs_tool query "$key" 2>&1)
+ 	if [ $? -ne 0 ]; then
++		if [[ "$outp" =~ "Query failed: Invalid argument" ]]; then
++			# This usually means that element does not exist
++			# e.g. when checking for IP address 
++			return 0;
++		fi
++
+ 		if [ "$outp" = "${outp/No data available/}" ] || [ "$outp" = "${outp/Operation not permitted/}" ]; then
+ 			ocf_log err "$outp ($key)"
+ 			return $FAIL
+-- 
+1.7.2.2
+
